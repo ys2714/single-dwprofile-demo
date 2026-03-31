@@ -2,6 +2,10 @@ package com.example.dwprofiledemoa
 
 import android.app.Application
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.zebra.emdk_kotlin_wrapper.dw.DataWedgeHelper
 import com.zebra.emdk_kotlin_wrapper.emdk.EMDKHelper
 
@@ -13,6 +17,8 @@ class MyApplication: Application() {
         const val PROFILE_NAME_MAIN = "profile_main"
 
         const val WAIT_BEFORE_SWITCH_PARAMS: Long = 100
+
+        var needWaitScannerIdleWhenAppResumeFromBackground = false
     }
 
     override fun onCreate() {
@@ -66,5 +72,18 @@ class MyApplication: Application() {
                 throw RuntimeException("EMDKHelper init failed")
             }
         }
+
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            object : LifecycleEventObserver {
+                override fun onStateChanged(
+                    source: LifecycleOwner,
+                    event: Lifecycle.Event
+                ) {
+                    if (event == Lifecycle.Event.ON_STOP) {
+                        needWaitScannerIdleWhenAppResumeFromBackground = true
+                    }
+                }
+            }
+        )
     }
 }

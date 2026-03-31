@@ -17,7 +17,6 @@ class MainViewModel: ViewModel() {
         DataWedgeHelper.switchScannerParams(context, Bundle().apply {
             putString("barcode_trigger_mode", "0")
             putString("decoder_code39", "false")
-            putString("decoder_ean13", "false")
             putString("decoder_codabar", "false")
         })
     }

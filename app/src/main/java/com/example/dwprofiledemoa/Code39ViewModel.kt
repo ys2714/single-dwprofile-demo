@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zebra.emdk_kotlin_wrapper.dw.DWAPI
 import com.zebra.emdk_kotlin_wrapper.dw.DataWedgeHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -16,18 +17,30 @@ class Code39ViewModel: ViewModel() {
     }
 
     fun handleOnResume(context: Context) {
-        registerDataListener(context)
-        // 毎回画面が開く前にトリガーボタンを有効する
-        // EAN13のDecoderだけを有効する
-        // 100ms待たないと他のアプリから復帰する場合は、Decoderが効かない
-        viewModelScope.launch {
-            delay(MyApplication.WAIT_BEFORE_SWITCH_PARAMS)
+        // 通常の場合はPROFILEの切り替えがないため、そのままSWITCH_SCANER_PARAMSでスキャナーを設定
+        if (!MyApplication.needWaitScannerIdleWhenAppResumeFromBackground) {
+            // 画面が開く前にトリガーボタンを有効する
+            // Codabar(NW7)のDecoderだけを有効する
             DataWedgeHelper.switchScannerParams(context, Bundle().apply {
                 putString("barcode_trigger_mode", "1")
                 putString("decoder_code39", "true")
-                putString("decoder_ean13", "false")
                 putString("decoder_codabar", "false")
             })
+        }
+        registerDataListener(context)
+        registerStatusListener(context) { type, value ->
+            if (DWAPI.NotificationType.SCANNER_STATUS == type && (value == "IDLE" || value == "WAITING")) {
+                if (MyApplication.needWaitScannerIdleWhenAppResumeFromBackground) {
+                    MyApplication.needWaitScannerIdleWhenAppResumeFromBackground = false
+                    // アプリはバックグラウンドから復帰する時は、自動でSWITCH_TO_PROFILEが呼ばれ
+                    // スキャナーのステータスをIDLEかWAITINGになるまでSWITCH_SCANER_PARAMSを行わない
+                    DataWedgeHelper.switchScannerParams(context, Bundle().apply {
+                        putString("barcode_trigger_mode", "1")
+                        putString("decoder_code39", "true")
+                        putString("decoder_codabar", "false")
+                    })
+                }
+            }
         }
     }
 
@@ -41,6 +54,7 @@ class Code39ViewModel: ViewModel() {
             putString("decoder_codabar", "false")
         })
         unregisterDataListener()
+        unregisterStatusListener(context)
     }
 
     fun handleOnDestroy(context: Context) {
@@ -72,6 +86,42 @@ class Code39ViewModel: ViewModel() {
     private fun unregisterDataListener() {
         if (scanDataListener != null) {
             DataWedgeHelper.removeScanDataListener(scanDataListener!!)
+        }
+    }
+
+    private var statusListener: DataWedgeHelper.SessionStatusListener? = null
+
+    private fun registerStatusListener(context: Context, onValue: (DWAPI.NotificationType, String) -> Unit) {
+        if (statusListener != null) {
+            return
+        }
+        statusListener = object : DataWedgeHelper.SessionStatusListener {
+            override fun onStatus(
+                type: DWAPI.NotificationType,
+                status: String,
+                profileName: String
+            ) {
+                onValue(type, status)
+            }
+
+            override fun getID(): String {
+                return hashCode().toString()
+            }
+
+            override fun onDisposal() {
+                statusListener = null
+            }
+        }.also {
+            DataWedgeHelper.addSessionStatusListener(it)
+            DataWedgeHelper.enableScannerStatusNotification(context)
+        }
+    }
+
+    private fun unregisterStatusListener(context: Context) {
+        if (statusListener != null) {
+            DataWedgeHelper.removeSessionStatusListener(statusListener!!)
+            DataWedgeHelper.disableScannerStatusNotification(context)
+            statusListener = null
         }
     }
 }
