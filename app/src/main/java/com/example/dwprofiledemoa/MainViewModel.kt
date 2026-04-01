@@ -12,7 +12,7 @@ class MainViewModel: ViewModel() {
     }
 
     fun handleOnResume(context: Context) {
-        // 毎回Main画面が開く前にトリガーボタンを有効する
+        // 毎回Main画面が開く前にトリガーボタンを無効する
         // すべてのDecoderも無効する
         DataWedgeHelper.switchScannerParams(context, Bundle().apply {
             putString("barcode_trigger_mode", "0")

@@ -32,11 +32,6 @@ class CodabarActivity: ComponentActivity() {
         Log.d(TAG, "onCreate")
     }
 
-    override fun onStart() {
-        super.onStart()
-        Log.d(TAG, "onStart")
-    }
-
     override fun onResume() {
         super.onResume()
         viewModel.handleOnResume(this)
@@ -53,6 +48,15 @@ class CodabarActivity: ComponentActivity() {
         super.onDestroy()
         viewModel.handleOnDestroy(this)
         Log.d(TAG, "onDestroy")
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            viewModel.handleGainFocus(this)
+        } else {
+            viewModel.handleLostFocus(this)
+        }
     }
 
     @Composable

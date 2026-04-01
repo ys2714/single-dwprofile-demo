@@ -1,9 +1,7 @@
 package com.example.dwprofiledemoa
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.os.PersistableBundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -13,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.dwprofiledemoa.ui.components.RoundButton
 
 class Code39Activity: ComponentActivity() {
 
@@ -40,6 +37,15 @@ class Code39Activity: ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         viewModel.handleOnDestroy(this)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            viewModel.handleGainFocus(this)
+        } else {
+            viewModel.handleLostFocus(this)
+        }
     }
 
     @Composable
